@@ -15,5 +15,15 @@ to clean:
 this brainfuck interpreter recieves brainfuck source code as first argument.
 stdin and stdout redirected to brainfuck's input and output respectively.
 
+
+further work ideas:
+* jump optimization
+  current implementation searches matching ] and [ every time.
+  it can be optimized memoise these position on first search,
+  and then next time search could be replaced with fseek.
+* functionize [ and ] processing
+  for readablity, [ and ] processing code should be extracted
+  as a function.
+
 -- 
 Ryohji IKEBE
