@@ -2,6 +2,7 @@
 #include <memory.h>
 
 static void do_brainfuck(FILE *fp, FILE *in, FILE *out);
+static int fgetprevc(FILE *fp);
 
 int main(int argn, char **args) {
   if (argn < 2)
@@ -14,31 +15,16 @@ int main(int argn, char **args) {
   return 0;
 }
 
-static int fgetprevc(FILE *fp) {
-  const long cur = ftell(fp);
-  if (2 > cur)
-    return EOF;
-  fseek(fp, cur - 2, SEEK_SET);
-  const int c = fgetc(fp);
-  printf ("get prev ch = %c, cur = %ld\n", c, cur);
-  return c;
-}
-
-#include <unistd.h>
 void do_brainfuck(FILE *fp, FILE *in, FILE *out) {
-  long nest = 0;
   char mem[30000];
   char *p = mem;
   memset(mem, 0, sizeof(mem));
 
-
  LOOP:
   int i = fgetc(fp);
-  if (EOF == i)
-    return;
-  printf("%c ip = %3ld, p = %08d, nest = %d\n", i, ftell(fp), p - mem, nest);
-  sleep(1);
   switch (i) {
+  case EOF:
+    return; // end brainfuck program normally
   case '>':
     if (p + 1 < mem + sizeof(mem))
       ++p;
@@ -47,10 +33,10 @@ void do_brainfuck(FILE *fp, FILE *in, FILE *out) {
     if (p > mem)
       --p;
     break;
-  case '+': printf("+, val = %d at %08d\n", 1 + *p, p);
+  case '+':
     ++ *p;
     break;
-  case '-': printf("-, val = %d at %08d\n", *p - 1, p);
+  case '-':
     -- *p;
     break;
   case '.':
@@ -60,40 +46,53 @@ void do_brainfuck(FILE *fp, FILE *in, FILE *out) {
     *p = fgetc(in);
     break;
   case '[':
-    ++nest;
     if (0 == *p) {
-      const long curnest = nest;
-      const long curip = ftell(fp);
-      for (; !(']' == (i = fgetc(fp)) && curnest == nest); ) {
-	if (EOF == i) {
-	  printf ("syntax error, no matching ']' found. (%d)\n", curip);
+      long level = 0;
+      const long curip = ftell(fp) - 1;
+      for (; !(']' == (i = fgetc(fp)) && 0 == level); ) {
+	switch (i) {
+	case EOF:
+	  fprintf (stderr, "syntax error, no matching ']' found. (%ld)\n", curip);
 	  return;
+	case '[':
+	  ++level;
+	  break;
+	case ']':
+	  --level;
+	  break;
 	}
-	if ('[' == i)
-	  nest++;
-	if (']' == i)
-	  --nest;
       }
     }
     break;
   case ']':
     if (0 != *p) {
-      const long curnest = nest;
-      const long curip = ftell(fp);
-      for (; !('[' == (i = fgetprevc(fp)) && curnest == nest); ) {
-	if (EOF == i) {
-	  printf ("syntax error, no matching '[' found. (%d)\n", curip);
+      long level = 0;
+      const long curip = ftell(fp) - 1;
+      for (; !('[' == (i = fgetprevc(fp)) && 0 == level); ) {
+	switch (i) {
+	case EOF:
+	  fprintf (stderr, "syntax error, no matching '[' found. (%ld)\n", curip);
 	  return;
+	case '[':
+	  --level;
+	  break;
+	case ']':
+	  ++level;
+	  break;
 	}
-	if ('[' == i)
-	  nest++;
-	if (']' == i)
-	  --nest;
       }
-      printf ("] broken by %c\n", i);
     }
-    --nest;
     break;
   }
   goto LOOP;
+}
+
+int fgetprevc(FILE *fp) {
+  const long cur = ftell(fp);
+  if (2 > cur) {
+    return EOF;
+  } else {
+    fseek(fp, cur - 2, SEEK_SET);
+    return fgetc(fp);
+  }
 }
