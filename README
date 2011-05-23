@@ -1,0 +1,19 @@
+this directory contains a tiny brainfuck interpreter source (main.cc) and brainfuck code (from Wikipedia).
+
+to compile:
+   make brainfuck
+ or
+   make all
+
+to execute:
+  ./brainfuck helloworld.bf
+
+to clean:
+  make clean
+
+
+this brainfuck interpreter recieves brainfuck source code as first argument.
+stdin and stdout redirected to brainfuck's input and output respectively.
+
+-- 
+Ryohji IKEBE
